@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "executionId": "exec-123",
+  "success": true,
+  "output": {
+    "erpSupplierId": "700123"
+  }
+}

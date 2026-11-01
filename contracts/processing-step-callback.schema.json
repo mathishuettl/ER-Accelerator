@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/iac/processing-step-callback-v1.schema.json",
+  "title": "Processing step callback v1",
+  "type": "object",
+  "required": ["schemaVersion", "executionId", "success", "output"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "executionId": {"type": "string", "minLength": 1},
+    "success": {"type": "boolean"},
+    "output": {"type": "object"}
+  },
+  "additionalProperties": false
+}

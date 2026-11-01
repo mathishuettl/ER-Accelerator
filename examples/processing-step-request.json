@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "executionId": "exec-123",
+  "documentId": "doc-456",
+  "step": "ERP_SUPPLIER_MAPPING",
+  "correlationId": "workflow-789",
+  "data": {
+    "supplierId": "supplier-123",
+    "companyId": "company-456",
+    "supplierName": "TechSupply GmbH",
+    "vatNumber": "ATU12345678"
+  }
+}

@@ -1,0 +1,815 @@
+schemaVersion: 0.1-draft
+status: review-required-before-provisioning
+product: Invoice Automation Accelerator
+publisherPrefix: iac
+dataverseNotes:
+- Dataverse erzeugt technische GUID-Primärschlüssel sowie Systemspalten selbst; in fields nicht nochmals
+  angegeben.
+- Name ist die Dataverse Primary-Name-Spalte, nicht der GUID-Primary-Key.
+- Currency-Felder verwenden native Money-Attribute plus Dataverse transactioncurrencyid; Wechselkurs/Basiswaehrung
+  systemseitig.
+- Lookups in Alternate Keys sind moeglich; Indizes muessen nach Provisionierung erfolgreich aktiv werden.
+- Nicht jede extrahierte KI-Information wird in Dataverse persistiert. Dynamische Felder und Snapshots
+  in Blob.
+- Alle choices, Feld- und Tabellennamen sind Entwurf, vor Erzeugung Metadaten- und Laengenlimits pruefen.
+- AssignedToUserId/TeamId in ProcessingTask sind vorlaeufige Platzhalter fuer ein finalisiertes Sicherheits-/Lookupmodell.
+tables:
+- name: Document
+  logicalName: iac_document
+  primaryName: Name
+  description: Ein Registereintrag pro Eingang; nicht spezifisch fuer Rechnungen.
+  fields:
+  - name: Name
+    type: autonumber
+    format: DOC-{SEQNUM:6}
+  - name: DocumentType
+    type: lookup
+    target: DocumentType
+  - name: Status
+    type: choice
+    options:
+    - Received
+    - Processing
+    - ActionRequired
+    - Completed
+    - Failed
+    required: true
+    default: Received
+  - name: ReceivedAt
+    type: datetime
+    required: true
+    behavior: UserLocal
+  - name: Source
+    type: text
+    required: true
+    maxLength: 80
+  - name: IngestionKey
+    type: text
+    required: true
+    maxLength: 128
+  - name: ContentHash
+    type: text
+    maxLength: 64
+  - name: OriginalFileName
+    type: text
+    maxLength: 255
+  - name: OriginalBlobKey
+    type: text
+    maxLength: 500
+  - name: CurrentDataBlobKey
+    type: text
+    maxLength: 500
+  - name: Category
+    type: lookup
+    target: Category
+  - name: CurrentAISummary
+    type: multiline
+    maxLength: 4000
+  alternateKeys:
+  - - IngestionKey
+- name: DocumentType
+  logicalName: iac_documenttype
+  primaryName: Name
+  description: Frei konfigurierbarer Dokumenttyp, z.B. invoice oder registration.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: Code
+    type: text
+    required: true
+    maxLength: 100
+  - name: Description
+    type: multiline
+    maxLength: 4000
+  - name: AIInstructions
+    type: multiline
+    maxLength: 8000
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+  alternateKeys:
+  - - Code
+- name: Invoice
+  logicalName: iac_invoice
+  primaryName: Name
+  description: Typisierte Projektion fuer Rechnungen. Dataverse transactioncurrencyid wird bei Money-Feldern
+    verwendet.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: Document
+    type: lookup
+    target: Document
+    required: true
+  - name: InvoiceNumber
+    type: text
+    maxLength: 100
+  - name: InvoiceDate
+    type: date
+    behavior: DateOnly
+  - name: DueDate
+    type: date
+    behavior: DateOnly
+  - name: Supplier
+    type: lookup
+    target: Supplier
+  - name: RecipientCompany
+    type: lookup
+    target: Company
+  - name: RecipientLocation
+    type: lookup
+    target: CompanyLocation
+  - name: PurchaseOrderNumber
+    type: text
+    maxLength: 100
+  - name: NetAmount
+    type: money
+    precision: 2
+  - name: TaxAmount
+    type: money
+    precision: 2
+  - name: GrossAmount
+    type: money
+    precision: 2
+  - name: ApprovalStatus
+    type: choice
+    options:
+    - NotRequired
+    - Pending
+    - Approved
+    - Rejected
+    default: NotRequired
+  - name: ERPExportStatus
+    type: choice
+    options:
+    - NotStarted
+    - Pending
+    - Transferred
+    - Failed
+    - Uncertain
+    default: NotStarted
+  - name: ERPDocumentNumber
+    type: text
+    maxLength: 120
+  - name: ERPExportedAt
+    type: datetime
+    behavior: UserLocal
+  alternateKeys:
+  - - Document
+- name: InvoiceLine
+  logicalName: iac_invoiceline
+  primaryName: Name
+  description: Rechnungspositionen fuer PO-Matching und spaetere Kontierung.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: Invoice
+    type: lookup
+    target: Invoice
+    required: true
+  - name: LineNumber
+    type: integer
+    required: true
+  - name: Description
+    type: multiline
+    maxLength: 4000
+  - name: ArticleNumber
+    type: text
+    maxLength: 100
+  - name: Quantity
+    type: decimal
+    precision: 4
+  - name: Unit
+    type: text
+    maxLength: 50
+  - name: UnitPrice
+    type: money
+    precision: 4
+  - name: NetAmount
+    type: money
+    precision: 2
+  - name: TaxRate
+    type: decimal
+    precision: 4
+  - name: TaxAmount
+    type: money
+    precision: 2
+  - name: GrossAmount
+    type: money
+    precision: 2
+  - name: PurchaseOrderLineReference
+    type: text
+    maxLength: 120
+  alternateKeys:
+  - - Invoice
+    - LineNumber
+- name: Supplier
+  logicalName: iac_supplier
+  primaryName: Name
+  description: Hub-eigene Lieferantenstammdaten. Bankdaten sind aus MVP ausgeschlossen.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: VATNumber
+    type: text
+    maxLength: 50
+  - name: RegistrationNumber
+    type: text
+    maxLength: 100
+  - name: Street
+    type: text
+    maxLength: 250
+  - name: PostalCode
+    type: text
+    maxLength: 30
+  - name: City
+    type: text
+    maxLength: 100
+  - name: CountryCode
+    type: text
+    maxLength: 2
+  - name: Email
+    type: text
+    maxLength: 250
+  - name: Phone
+    type: text
+    maxLength: 60
+  - name: Website
+    type: url
+    maxLength: 500
+  - name: Aliases
+    type: multiline
+    maxLength: 4000
+  - name: AIInstructions
+    type: multiline
+    maxLength: 8000
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+- name: Company
+  logicalName: iac_company
+  primaryName: Name
+  description: Eigene rechtliche Gesellschaften / Rechnungsempfaenger.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: CompanyCode
+    type: text
+    required: true
+    maxLength: 60
+  - name: VATNumber
+    type: text
+    maxLength: 50
+  - name: RegistrationNumber
+    type: text
+    maxLength: 100
+  - name: Street
+    type: text
+    maxLength: 250
+  - name: PostalCode
+    type: text
+    maxLength: 30
+  - name: City
+    type: text
+    maxLength: 100
+  - name: CountryCode
+    type: text
+    maxLength: 2
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+  alternateKeys:
+  - - CompanyCode
+- name: CompanyLocation
+  logicalName: iac_companylocation
+  primaryName: Name
+  description: Standorte einer Company; ein Location-Code ist je Gesellschaft eindeutig.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: Company
+    type: lookup
+    target: Company
+    required: true
+  - name: LocationCode
+    type: text
+    required: true
+    maxLength: 60
+  - name: Street
+    type: text
+    maxLength: 250
+  - name: PostalCode
+    type: text
+    maxLength: 30
+  - name: City
+    type: text
+    maxLength: 100
+  - name: CountryCode
+    type: text
+    maxLength: 2
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+  alternateKeys:
+  - - Company
+    - LocationCode
+- name: FieldDefinition
+  logicalName: iac_fielddefinition
+  primaryName: Name
+  description: Konfiguration fuer Standard- und Zusatzfelder; Feldschluessel sind stabile Integrationsvertraege.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: FieldKey
+    type: text
+    required: true
+    maxLength: 100
+  - name: DocumentType
+    type: lookup
+    target: DocumentType
+    required: true
+  - name: DataType
+    type: choice
+    options:
+    - Text
+    - Number
+    - Date
+    - Boolean
+    required: true
+  - name: AIInstructions
+    type: multiline
+    maxLength: 8000
+  - name: ExampleValue
+    type: text
+    maxLength: 500
+  - name: IsStandardField
+    type: boolean
+    required: true
+    default: false
+  - name: TargetColumn
+    type: text
+    maxLength: 150
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+  alternateKeys:
+  - - DocumentType
+    - FieldKey
+- name: Category
+  logicalName: iac_category
+  primaryName: Name
+  description: Eine Hauptkategorie pro Dokument als V1. Kategorien gelten je Dokumenttyp.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: Code
+    type: text
+    required: true
+    maxLength: 100
+  - name: Description
+    type: multiline
+    maxLength: 4000
+  - name: DocumentType
+    type: lookup
+    target: DocumentType
+    required: true
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+  alternateKeys:
+  - - DocumentType
+    - Code
+- name: AIConfiguration
+  logicalName: iac_aiconfiguration
+  primaryName: Name
+  description: Allgemeine kundenspezifische KI-Anweisungen, keine Secrets.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: GeneralInstructions
+    type: multiline
+    maxLength: 16000
+  - name: IsActive
+    type: boolean
+    required: true
+    default: false
+  - name: Version
+    type: text
+    required: true
+    maxLength: 30
+- name: ExtractionRun
+  logicalName: iac_extractionrun
+  primaryName: Name
+  description: Ein KI-Lauf; immutable Snapshots in Blob Storage, Summary zusaetzlich in Dataverse.
+  fields:
+  - name: Name
+    type: autonumber
+    format: EXT-{SEQNUM:6}
+  - name: Document
+    type: lookup
+    target: Document
+    required: true
+  - name: Status
+    type: choice
+    options:
+    - Running
+    - Succeeded
+    - Failed
+    required: true
+  - name: StartedAt
+    type: datetime
+    behavior: UserLocal
+  - name: CompletedAt
+    type: datetime
+    behavior: UserLocal
+  - name: ModelName
+    type: text
+    maxLength: 120
+  - name: ConfigurationVersion
+    type: text
+    maxLength: 50
+  - name: AISummary
+    type: multiline
+    maxLength: 4000
+  - name: ResultBlobKey
+    type: text
+    maxLength: 500
+  - name: ConfigurationBlobKey
+    type: text
+    maxLength: 500
+  - name: InputTokens
+    type: integer
+  - name: OutputTokens
+    type: integer
+  - name: ErrorMessage
+    type: multiline
+    maxLength: 4000
+- name: WorkflowDefinition
+  logicalName: iac_workflowdefinition
+  primaryName: Name
+  description: Versionierter Workflow je Dokumenttyp.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: DocumentType
+    type: lookup
+    target: DocumentType
+    required: true
+  - name: Version
+    type: integer
+    required: true
+  - name: IsActive
+    type: boolean
+    required: true
+    default: false
+  alternateKeys:
+  - - DocumentType
+    - Version
+- name: WorkflowStep
+  logicalName: iac_workflowstep
+  primaryName: Name
+  description: Vorgegebener Katalog und Reihenfolge; Ergaenzungen durch Code.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: WorkflowDefinition
+    type: lookup
+    target: WorkflowDefinition
+    required: true
+  - name: StepKey
+    type: text
+    required: true
+    maxLength: 100
+  - name: Sequence
+    type: integer
+    required: true
+  - name: IsEnabled
+    type: boolean
+    required: true
+    default: true
+  - name: IsRequired
+    type: boolean
+    required: true
+    default: false
+  - name: FlowBinding
+    type: lookup
+    target: FlowBinding
+  alternateKeys:
+  - - WorkflowDefinition
+    - StepKey
+- name: WorkflowInstance
+  logicalName: iac_workflowinstance
+  primaryName: Name
+  description: Konkrete Ausfuehrung mit unveraenderlichem Workflow-Snapshot.
+  fields:
+  - name: Name
+    type: autonumber
+    format: WF-{SEQNUM:6}
+  - name: Document
+    type: lookup
+    target: Document
+    required: true
+  - name: WorkflowDefinition
+    type: lookup
+    target: WorkflowDefinition
+    required: true
+  - name: Status
+    type: choice
+    options:
+    - Pending
+    - Running
+    - ActionRequired
+    - Completed
+    - Failed
+    - Cancelled
+    required: true
+    default: Pending
+  - name: StartedAt
+    type: datetime
+    behavior: UserLocal
+  - name: CompletedAt
+    type: datetime
+    behavior: UserLocal
+  - name: DefinitionSnapshotBlobKey
+    type: text
+    maxLength: 500
+- name: StepExecution
+  logicalName: iac_stepexecution
+  primaryName: Name
+  description: Idempotente Ausfuehrung eines Processing Steps.
+  fields:
+  - name: Name
+    type: autonumber
+    format: STEP-{SEQNUM:6}
+  - name: WorkflowInstance
+    type: lookup
+    target: WorkflowInstance
+    required: true
+  - name: WorkflowStep
+    type: lookup
+    target: WorkflowStep
+    required: true
+  - name: ExecutionId
+    type: text
+    required: true
+    maxLength: 64
+  - name: Status
+    type: choice
+    options:
+    - Pending
+    - Running
+    - WaitingForReview
+    - Succeeded
+    - Failed
+    - Skipped
+    required: true
+    default: Pending
+  - name: AttemptCount
+    type: integer
+    required: true
+    default: 0
+  - name: StartedAt
+    type: datetime
+    behavior: UserLocal
+  - name: CompletedAt
+    type: datetime
+    behavior: UserLocal
+  - name: InputBlobKey
+    type: text
+    maxLength: 500
+  - name: OutputBlobKey
+    type: text
+    maxLength: 500
+  - name: ErrorMessage
+    type: multiline
+    maxLength: 4000
+  alternateKeys:
+  - - ExecutionId
+- name: ProcessingTask
+  logicalName: iac_processingtask
+  primaryName: Name
+  description: 'Aufgabenorientierte Inbox. User/Team-Referenzen sind V1-Vorschlag: native Lookups vor
+    Implementierung validieren.'
+  fields:
+  - name: Name
+    type: autonumber
+    format: TASK-{SEQNUM:6}
+  - name: Document
+    type: lookup
+    target: Document
+    required: true
+  - name: StepExecution
+    type: lookup
+    target: StepExecution
+  - name: TaskType
+    type: text
+    required: true
+    maxLength: 100
+  - name: Status
+    type: choice
+    options:
+    - Open
+    - InProgress
+    - Completed
+    - Cancelled
+    required: true
+    default: Open
+  - name: AssignedToUserId
+    type: text
+    maxLength: 64
+  - name: AssignedToTeamId
+    type: text
+    maxLength: 64
+  - name: FocusTarget
+    type: text
+    maxLength: 150
+  - name: Result
+    type: text
+    maxLength: 50
+  - name: CreatedAt
+    type: datetime
+    behavior: UserLocal
+  - name: CompletedAt
+    type: datetime
+    behavior: UserLocal
+  - name: CompletedByUserId
+    type: text
+    maxLength: 64
+  - name: ContextBlobKey
+    type: text
+    maxLength: 500
+- name: FlowBinding
+  logicalName: iac_flowbinding
+  primaryName: Name
+  description: HTTP-Flow-Registrierung; keine echten Trigger-URLs oder Secrets in Dataverse.
+  fields:
+  - name: Name
+    type: text
+    required: true
+    maxLength: 200
+  - name: BindingType
+    type: choice
+    options:
+    - EventListener
+    - ProcessingStep
+    required: true
+  - name: EventName
+    type: text
+    maxLength: 120
+  - name: DocumentType
+    type: lookup
+    target: DocumentType
+  - name: EndpointSecretReference
+    type: text
+    required: true
+    maxLength: 250
+  - name: ContractVersion
+    type: text
+    required: true
+    maxLength: 30
+  - name: IsActive
+    type: boolean
+    required: true
+    default: true
+- name: Activity
+  logicalName: iac_activity
+  primaryName: Name
+  description: Fachlich lesbare Aktivitaeten fuer Historie und Dashboard, kein vollstaendiges Audit-Log.
+  fields:
+  - name: Name
+    type: autonumber
+    format: ACT-{SEQNUM:6}
+  - name: Document
+    type: lookup
+    target: Document
+    required: true
+  - name: ActivityType
+    type: text
+    required: true
+    maxLength: 120
+  - name: Title
+    type: text
+    required: true
+    maxLength: 250
+  - name: Description
+    type: multiline
+    maxLength: 4000
+  - name: OccurredAt
+    type: datetime
+    required: true
+    behavior: UserLocal
+  - name: ActorType
+    type: choice
+    options:
+    - User
+    - System
+    - Flow
+    required: true
+  - name: ActorReference
+    type: text
+    maxLength: 120
+  - name: StepExecution
+    type: lookup
+    target: StepExecution
+  - name: ProcessingTask
+    type: lookup
+    target: ProcessingTask
+  - name: DetailsBlobKey
+    type: text
+    maxLength: 500
+- name: MessageOutbox
+  logicalName: iac_messageoutbox
+  primaryName: Name
+  description: Transactional Outbox fuer Events UND Commands (ersetzt EventOutbox).
+  fields:
+  - name: Name
+    type: autonumber
+    format: MSG-{SEQNUM:6}
+  - name: MessageId
+    type: text
+    required: true
+    maxLength: 64
+  - name: MessageKind
+    type: choice
+    options:
+    - Event
+    - Command
+    required: true
+  - name: MessageType
+    type: text
+    required: true
+    maxLength: 120
+  - name: Document
+    type: lookup
+    target: Document
+  - name: AggregateId
+    type: text
+    maxLength: 64
+  - name: OccurredAt
+    type: datetime
+    required: true
+    behavior: UserLocal
+  - name: CorrelationId
+    type: text
+    maxLength: 64
+  - name: PayloadBlobKey
+    type: text
+    maxLength: 500
+  - name: Status
+    type: choice
+    options:
+    - Pending
+    - Published
+    - Failed
+    required: true
+    default: Pending
+  - name: AttemptCount
+    type: integer
+    required: true
+    default: 0
+  - name: NextAttemptAt
+    type: datetime
+    behavior: UserLocal
+  - name: PublishedAt
+    type: datetime
+    behavior: UserLocal
+  - name: LastError
+    type: multiline
+    maxLength: 4000
+  alternateKeys:
+  - - MessageId
+deferred:
+- SupplierBankAccount
+- DeliveryNote
+- DeliveryNoteLine
+- DocumentIndexValue
+- AccountingAllocation
+- SupplierExternalReference

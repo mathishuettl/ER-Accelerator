@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "messageId": "event-0001",
+  "messageKind": "Event",
+  "messageType": "Document.Received",
+  "documentId": "doc-123",
+  "correlationId": "workflow-or-ingestion-456",
+  "occurredAt": "2026-11-01T11:30:00Z",
+  "data": {
+    "source": "outlook",
+    "ingestionKey": "sha256-of-stable-source-identity"
+  }
+}

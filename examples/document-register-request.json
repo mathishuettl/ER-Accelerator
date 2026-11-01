@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "source": "outlook",
+  "ingestionKey": "sha256-of-source-message-id-and-attachment-id",
+  "fileName": "invoice.pdf",
+  "contentType": "application/pdf",
+  "documentTypeCode": "invoice",
+  "metadata": {
+    "sender": "invoices@example.com",
+    "subject": "Invoice",
+    "receivedAt": "2026-11-01T11:25:00Z"
+  },
+  "stagedFileReference": "opaque-server-issued-upload-reference"
+}

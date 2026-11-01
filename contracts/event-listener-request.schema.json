@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/iac/event-listener-request-v1.schema.json",
+  "title": "Event listener flow request v1",
+  "type": "object",
+  "required": ["schemaVersion", "event", "documentId", "documentType", "eventId", "data"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "event": {"type": "string", "minLength": 1},
+    "documentId": {"type": "string", "minLength": 1},
+    "documentType": {"type": "string", "minLength": 1},
+    "eventId": {"type": "string", "minLength": 1},
+    "data": {"type": "object"}
+  },
+  "additionalProperties": false
+}

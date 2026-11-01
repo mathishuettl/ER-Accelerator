@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/iac/document-register-request-v1.schema.json",
+  "title": "RegisterDocument request v1 (staged file variant)",
+  "type": "object",
+  "required": ["schemaVersion", "source", "ingestionKey", "fileName", "contentType", "stagedFileReference"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "source": {"type": "string", "minLength": 1},
+    "ingestionKey": {"type": "string", "minLength": 1},
+    "fileName": {"type": "string", "minLength": 1},
+    "contentType": {"type": "string", "minLength": 1},
+    "documentTypeCode": {"type": ["string", "null"]},
+    "metadata": {"type": "object"},
+    "stagedFileReference": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

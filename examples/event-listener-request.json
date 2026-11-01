@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "event": "Document.Extracted",
+  "documentId": "doc-123",
+  "documentType": "registration",
+  "eventId": "event-987",
+  "data": {
+    "firstName": "Max",
+    "lastName": "Mustermann",
+    "email": "max@example.com",
+    "eventName": "AI Workshop"
+  }
+}
